@@ -1,0 +1,31 @@
+# Java / Maven
+target/
+*.jar
+*.war
+*.class
+.mvn/
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+*.local
+
+# Environment / Secrets
+.env
+.env.local
+.env.*.local
+*.user.toml
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
