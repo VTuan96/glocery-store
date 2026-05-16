@@ -49,8 +49,10 @@ export interface CartItem {
   productName: string
   quantity: number
   unitPrice: number     // VND integer — resolved via resolvePricing()
+  originalUnitPrice?: number
   totalPrice: number    // quantity * unitPrice
   priceOverridden: boolean
+  overrideToken?: string
   createdAt: string
   updatedAt: string
 }

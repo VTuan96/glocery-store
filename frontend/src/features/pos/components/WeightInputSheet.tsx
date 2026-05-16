@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Drawer from '@mui/material/Drawer'
 import { resolvePricing } from '../../../lib/pricing/resolvePricing'
 import { formatVND } from '../../../lib/format/formatVND'
@@ -13,6 +13,12 @@ interface WeightInputSheetProps {
 
 export function WeightInputSheet({ open, product, onConfirm, onCancel }: WeightInputSheetProps) {
   const [qty, setQty] = useState('')
+
+  useEffect(() => {
+    if (open) {
+      setQty('')
+    }
+  }, [open, product])
 
   const quantity = parseFloat(qty) || 0
   const price = product ? resolvePricing(product, quantity) : 0

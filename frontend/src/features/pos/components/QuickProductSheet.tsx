@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Drawer from '@mui/material/Drawer'
 import { VndInput } from '../../../components/ui/VndInput'
 import { apiClient } from '../../../lib/api/client'
+import { db } from '../../../lib/db'
+import { useNetworkStore } from '../../../store/networkStore'
 import { useAuthStore } from '../../../store/authStore'
+import { mapServerProduct } from '../../products/hooks/useProducts'
 import type { Product, ProductType } from '../../../types/global'
 
 interface QuickProductSheetProps {
@@ -29,24 +32,66 @@ export function QuickProductSheet({ open, initialName = '', onSaved, onCancel }:
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const storeId = useAuthStore((s) => s.storeId)
+  const isOnline = useNetworkStore((s) => s.isOnline)
+
+  useEffect(() => {
+    if (open) {
+      setName(initialName)
+      setPrice(0)
+      setType('NORMAL')
+      setError('')
+    }
+  }, [open, initialName])
 
   async function handleSave() {
     if (!name.trim()) { setError('Tên là bắt buộc'); return }
     if (price <= 0) { setError('Giá phải lớn hơn 0'); return }
+    if (!storeId) { setError('Cửa hàng không xác định'); return }
     setSaving(true); setError('')
     try {
-      const { data } = await apiClient.post<Product>('/products', {
-        name: name.trim(), type, defaultPrice: price, storeId,
-        barcodes: [], packUnits: [], pricingTiers: [],
-      })
-      onSaved(data)
+      let product: Product
+      if (!isOnline) {
+        product = {
+          clientId: crypto.randomUUID(),
+          syncStatus: 'pending',
+          storeId,
+          name: name.trim(),
+          type,
+          defaultPrice: price,
+          barcodes: [],
+          packUnits: [],
+          pricingTiers: [],
+          inventoryTracked: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        await db.products.add(product)
+        await db.syncQueue.add({
+          clientId: crypto.randomUUID(),
+          syncStatus: 'pending',
+          type: 'CREATE_PRODUCT',
+          payload: product,
+          clientTimestamp: new Date().toISOString(),
+          retryCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      } else {
+        const { data } = await apiClient.post<Product>('/products', {
+          name: name.trim(), type, defaultPrice: price, storeId,
+          barcodes: [], packUnits: [], pricingTiers: [],
+        })
+        product = mapServerProduct(data as Product & { id: string }, storeId)
+        await db.products.put(product)
+      }
+      onSaved(product)
     } catch {
       setError('Không thể lưu sản phẩm')
     } finally { setSaving(false) }
   }
 
   return (
-    <Drawer anchor="bottom" open={open} onClose={onCancel}>
+    <Drawer anchor="bottom" open={open} onClose={onCancel} BackdropProps={{ sx: { backdropFilter: 'blur(2px)' } }}>
       <div style={styles.container}>
         <h3 style={styles.title}>Tạo sản phẩm mới</h3>
         <input value={name} onChange={(e) => setName(e.target.value)}

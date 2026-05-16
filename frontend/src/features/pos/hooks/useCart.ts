@@ -16,8 +16,12 @@ export function useCart() {
     db.cart.toArray().then(setItems)
   }, [setItems])
 
-  async function addItem(product: Product, quantity: number, overridePrice?: number) {
+  async function addItem(product: Product, quantity: number, overridePrice?: number, overrideToken?: string) {
     const unitPrice = overridePrice ?? resolvePricing(product, quantity)
+    // Safety: ensure unitPrice is valid
+    if (unitPrice <= 0) {
+      console.warn(`Invalid unit price for product ${product.name}: ${unitPrice}`)
+    }
     const existing = items.find((i) => i.productId === product.clientId && !i.priceOverridden)
 
     if (existing && !overridePrice) {
@@ -40,8 +44,10 @@ export function useCart() {
         productName: product.name,
         quantity,
         unitPrice,
+        originalUnitPrice: overridePrice ? resolvePricing(product, quantity) : undefined,
         totalPrice: unitPrice * quantity,
         priceOverridden: !!overridePrice,
+        overrideToken,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
@@ -57,9 +63,13 @@ export function useCart() {
     } else {
       const item = items.find((i) => i.clientId === clientId)
       if (!item) return
+      const product = await db.products.where('clientId').equals(item.productId).first()
+      if (!product) return
+      const newUnitPrice = item.priceOverridden ? item.unitPrice : resolvePricing(product, quantity)
       await db.cart.where('clientId').equals(clientId).modify({
         quantity,
-        totalPrice: item.unitPrice * quantity,
+        unitPrice: newUnitPrice,
+        totalPrice: newUnitPrice * quantity,
         updatedAt: new Date().toISOString(),
       })
     }
@@ -76,13 +86,15 @@ export function useCart() {
     setItems([])
   }
 
-  async function overridePrice(clientId: string, newPrice: number) {
+  async function overridePrice(clientId: string, newPrice: number, overrideToken?: string) {
     const item = items.find((i) => i.clientId === clientId)
     if (!item) return
     await db.cart.where('clientId').equals(clientId).modify({
       unitPrice: newPrice,
+      originalUnitPrice: item.originalUnitPrice ?? item.unitPrice,
       totalPrice: newPrice * item.quantity,
       priceOverridden: true,
+      overrideToken,
       updatedAt: new Date().toISOString(),
     })
     setItems(await db.cart.toArray())

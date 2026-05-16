@@ -1,23 +1,24 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { useCart } from '../hooks/useCart'
 import { useCheckout } from '../hooks/useCheckout'
 import { useBarcode } from '../hooks/useBarcode'
+import { useProducts } from '../../products/hooks/useProducts'
 import { CartItemRow } from './CartItemRow'
 import { CheckoutConfirmSheet } from './CheckoutConfirmSheet'
 import { WeightInputSheet } from './WeightInputSheet'
 import { QuickProductSheet } from './QuickProductSheet'
 import { OwnerPinModal } from '../../auth/components/OwnerPinModal'
 import { CustomerSearch } from '../../customers/components/CustomerSearch'
+import { ProductTile } from './ProductTile'
 import { VndInput } from '../../../components/ui/VndInput'
 import { formatVND } from '../../../lib/format/formatVND'
-import { apiClient } from '../../../lib/api/client'
 import { useAuthStore } from '../../../store/authStore'
 import type { CustomerData } from '../../customers/hooks/useCustomers'
 import type { Product } from '../../../types/global'
 
 export function POSScreen() {
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showCheckout, setShowCheckout] = useState(false)
   const [checkoutType, setCheckoutType] = useState<'CASH' | 'DEBT'>('CASH')
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null)
@@ -37,15 +38,12 @@ export function POSScreen() {
   const { scanning, notFound, videoRef, startScan, stopScan } = useBarcode(
     (product, qty) => handleAddProduct(product, qty)
   )
+  const { products, isLoading: loadingProducts } = useProducts(debouncedSearch)
 
-  const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ['products', storeId, search],
-    queryFn: () =>
-      apiClient.get('/products', { params: { storeId, search } }).then((r) =>
-        r.data.map((p: Product & { id: string }) => ({ ...p, serverId: p.id, clientId: p.id }))
-      ),
-    enabled: !!storeId && search.length >= 2,
-  })
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   function handleAddProduct(product: Product, qty = 1) {
     if (product.type === 'WEIGHT') {
@@ -75,8 +73,9 @@ export function POSScreen() {
 
   async function applyPriceOverride() {
     if (!priceOverrideItem || overrideValue <= 0) return
-    await overridePrice(priceOverrideItem, overrideValue)
+    await overridePrice(priceOverrideItem, overrideValue, overrideToken)
     setPriceOverrideItem(null)
+    setOverrideToken(undefined)
   }
 
   function handleCheckoutPress() {
@@ -129,31 +128,50 @@ export function POSScreen() {
           </div>
         )}
 
-        {search.length >= 2 && (
+        {loadingProducts && search.length >= 2 && <div style={styles.loading}>Đang tải sản phẩm...</div>}
+
+        {products.length > 0 ? (
           <ul style={styles.productGrid}>
             {products.map((p) => (
-              <li key={p.clientId} onClick={() => handleAddProduct(p)}
-                style={styles.productTile} role="button" aria-label={p.name}>
-                <div style={styles.tileName}>{p.name}</div>
-                <div style={styles.tilePrice}>{formatVND(p.defaultPrice)}</div>
+              <li key={p.clientId} style={styles.productTileWrapper}>
+                <ProductTile product={p} onClick={() => handleAddProduct(p)} />
               </li>
             ))}
-            {products.length === 0 && (
-              <li style={styles.emptySearch}>
-                <span>Không tìm thấy sản phẩm</span>
-                {role === 'OWNER' && (
-                  <button onClick={() => setQuickCreateName(search)} style={styles.createPromptBtn}>
-                    Tạo sản phẩm mới "{search}"?
-                  </button>
-                )}
-              </li>
-            )}
           </ul>
-        )}
-        {search.length === 0 && (
+        ) : search.length >= 2 ? (
+          <li style={styles.emptySearch}>
+            <span>Không tìm thấy sản phẩm</span>
+            {role === 'OWNER' && (
+              <button onClick={() => setQuickCreateName(search)} style={styles.createPromptBtn}>
+                Tạo sản phẩm mới "{search}"?
+              </button>
+            )}
+          </li>
+        ) : (
           <div style={styles.emptyHint}>Quét hoặc tìm sản phẩm để bắt đầu</div>
         )}
+
+        {!loadingProducts && search.length === 0 && products.length === 0 && (
+          <div style={styles.emptyHint}>Chưa có sản phẩm thường xuyên. Hãy thêm hoặc đồng bộ sản phẩm.</div>
+        )}
       </div>
+
+      {!isTablet && items.length > 0 && (
+        <div style={styles.mobileSummary}>
+          <div style={styles.mobileTotal}>
+            <span>Tổng</span>
+            <strong>{formatVND(total)}</strong>
+          </div>
+          <button
+            onClick={handleCheckoutPress}
+            disabled={items.length === 0}
+            style={styles.mobileCheckoutBtn}
+            aria-label="Thanh toán"
+          >
+            {checkoutType === 'DEBT' && !selectedCustomer ? 'Chọn khách hàng' : 'Thanh toán →'}
+          </button>
+        </div>
+      )}
 
       {/* Right: Cart panel */}
       <div style={{ ...styles.cartPanel, width: isTablet ? '45%' : '100%' }}>
@@ -269,7 +287,9 @@ const styles: Record<string, React.CSSProperties> = {
   scanBtn: { width: 48, height: 48, background: '#00695C', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   video: { width: '100%', maxHeight: 200, borderRadius: 8, margin: '0 16px 8px' },
   notFoundPrompt: { display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 16px', background: '#FFF3E0', borderBottom: '2px solid #FFB74D' },
-  productGrid: { listStyle: 'none', padding: '12px', margin: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 },
+  productGrid: { listStyle: 'none', padding: '12px', margin: 0, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(120px, 1fr))', gap: 10 },
+  productTileWrapper: { listStyle: 'none' },
+  loading: { padding: '16px', color: '#555' },
   productTile: { background: '#fff', border: '1px solid #E0E0E0', borderRadius: 10, padding: '14px 10px', cursor: 'pointer', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 80 },
   tileName: { fontSize: 15, fontWeight: 600, marginBottom: 6 },
   tilePrice: { fontSize: 16, color: '#00695C', fontWeight: 700 },
@@ -290,4 +310,7 @@ const styles: Record<string, React.CSSProperties> = {
   totalLabel: { fontSize: 16, color: '#616161' },
   totalAmount: { fontSize: 32, fontWeight: 700, color: '#1A1A1A' },
   checkoutBtn: { width: '100%', height: 64, color: '#fff', border: 'none', borderRadius: 12, fontSize: 18, fontWeight: 700, cursor: 'pointer' },
+  mobileSummary: { position: 'sticky', bottom: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: 12, background: '#fff', borderTop: '1px solid #E0E0E0' },
+  mobileTotal: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 14, color: '#333' },
+  mobileCheckoutBtn: { flex: 1, padding: '12px 16px', background: '#00695C', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 16, fontWeight: 700, minHeight: 48 },
 }

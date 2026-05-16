@@ -15,7 +15,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     boolean existsByClientId(String clientId);
 
     @Query(value = "SELECT COALESCE(SUM(t.total_amount), 0), COUNT(t.id) FROM transactions t " +
-                   "WHERE t.store_id = :storeId AND t.type = 'SALE' " +
+                   "WHERE t.store_id = :storeId AND t.type IN ('CASH','DEBT') " +
                    "AND t.created_at >= :start AND t.created_at < :end",
            nativeQuery = true)
     Object[] aggregateDailyRevenue(@Param("storeId") UUID storeId,
@@ -26,7 +26,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
                    "FROM transaction_items ti " +
                    "JOIN transactions t ON ti.transaction_id = t.id " +
                    "JOIN products p ON p.id = ti.product_id " +
-                   "WHERE t.store_id = :storeId AND t.created_at >= :start AND t.created_at < :end " +
+                   "WHERE t.store_id = :storeId AND t.type IN ('CASH','DEBT') AND t.created_at >= :start AND t.created_at < :end " +
                    "GROUP BY ti.product_id, p.name ORDER BY units_sold DESC LIMIT 20",
            nativeQuery = true)
     List<Object[]> aggregateTopProductsRaw(@Param("storeId") UUID storeId,
