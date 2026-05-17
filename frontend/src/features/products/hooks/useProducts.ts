@@ -9,6 +9,7 @@ interface ProductPayload {
   name: string
   type: ProductType
   defaultPrice: number
+  imageUrl?: string
   barcodes?: string[]
   packUnits?: { name: string; quantity: number; barcode?: string }[]
   pricingTiers?: { minQuantity: number; unitPrice: number }[]
@@ -25,6 +26,7 @@ export function mapServerProduct(serverProduct: Product & { id: string }, storeI
     clientId: serverProduct.id,
     syncStatus: 'synced',
     storeId,
+    imageUrl: (serverProduct as any).imageUrl ?? undefined,
     createdAt: serverProduct.createdAt ?? new Date().toISOString(),
     updatedAt: serverProduct.updatedAt ?? new Date().toISOString(),
   }
@@ -99,9 +101,12 @@ export function useProducts(search?: string) {
   })
 
   const createMutation = useMutation({
-    mutationFn: async (payload: ProductPayload) => {
+    mutationFn: async ({ payload, file }: { payload: ProductPayload; file?: File }) => {
       if (!storeId) throw new Error('Store ID is required')
       if (!isOnline) {
+        if (file) {
+          throw new Error('Image upload requires an online connection')
+        }
         const localProduct: Product = {
           clientId: crypto.randomUUID(),
           syncStatus: 'pending',
@@ -130,7 +135,16 @@ export function useProducts(search?: string) {
         return localProduct
       }
       const response = await apiClient.post('/products', { ...payload, storeId })
-      return mapServerProduct(response.data, storeId)
+      const created = response.data as Product & { id: string }
+      if (file) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const imageResponse = await apiClient.post(`/products/${created.id}/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return mapServerProduct(imageResponse.data, storeId)
+      }
+      return mapServerProduct(created, storeId)
     },
     onSuccess: async (data: Product) => {
       if (storeId) {
@@ -143,8 +157,22 @@ export function useProducts(search?: string) {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: ProductPayload }) =>
-      apiClient.put(`/products/${id}`, { ...payload, storeId }).then((r) => r.data),
+    mutationFn: async ({ id, payload, file }: { id: string; payload: ProductPayload; file?: File }) => {
+      if (file && !isOnline) {
+        throw new Error('Image upload requires an online connection')
+      }
+      const response = await apiClient.put(`/products/${id}`, { ...payload, storeId })
+      const updated = response.data as Product & { id: string }
+      if (file) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const imageResponse = await apiClient.post(`/products/${id}/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return imageResponse.data
+      }
+      return updated
+    },
     onSuccess: async (data: Product & { id: string }) => {
       if (storeId) {
         await syncServerProducts(storeId, [data])

@@ -9,6 +9,7 @@ public record ProductResponse(
         ProductType type,
         long defaultPrice,
         UUID storeId,
+    String imageUrl,
         List<String> barcodes,
         List<PackUnitDto> packUnits,
         List<PricingTierDto> pricingTiers
@@ -19,6 +20,7 @@ public record ProductResponse(
     public static ProductResponse from(Product p) {
         return new ProductResponse(
                 p.getId(), p.getName(), p.getType(), p.getDefaultPrice(), p.getStoreId(),
+                p.getImageUrl(),
                 p.getBarcodes().stream().map(Barcode::getCode).toList(),
                 p.getPackUnits().stream().map(u -> new PackUnitDto(u.getId(), u.getName(), u.getQuantity())).toList(),
                 p.getPricingTiers().stream()

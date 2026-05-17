@@ -25,6 +25,7 @@ export interface Product {
   inventoryTracked: boolean
   pricingTiers?: PricingTier[]
   barcodes?: string[]
+  imageUrl?: string
   createdAt: string     // ISO 8601
   updatedAt: string
 }

@@ -14,6 +14,11 @@ export function ProductTile({ product, onClick }: ProductTileProps) {
       aria-label={`Chọn sản phẩm ${product.name}`}
     >
       <div style={styles.name}>{product.name}</div>
+      {product.imageUrl ? (
+        <img src={product.imageUrl} alt={product.name} style={styles.thumb} />
+      ) : (
+        <div style={styles.placeholder}>Chưa có hình</div>
+      )}
       <div style={styles.price}>{product.type === 'WEIGHT' ? 'Giá theo cân' : `${product.defaultPrice?.toLocaleString('vi-VN') ?? '0'} đ`}</div>
       <div style={styles.meta}></div>
     </button>
@@ -35,6 +40,8 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     color: '#1A1A1A',
   },
+  thumb: { width: 64, height: 64, objectFit: 'cover', borderRadius: 8, marginBottom: 8 },
+  placeholder: { width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F1F1', borderRadius: 8, color: '#757575', fontSize: 12, marginBottom: 8, textAlign: 'center', padding: 6 },
   name: {
     fontSize: 15,
     fontWeight: 700,

@@ -53,4 +53,10 @@ public class Product extends BaseEntity {
     public List<Barcode> getBarcodes() { return barcodes; }
     public List<PackUnit> getPackUnits() { return packUnits; }
     public List<PricingTier> getPricingTiers() { return pricingTiers; }
+    
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }

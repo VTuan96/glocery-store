@@ -10,14 +10,14 @@ export function ProductList() {
   const [creating, setCreating] = useState(false)
   const { products, isLoading, createMutation, updateMutation } = useProducts(search)
 
-  async function handleCreate(data: ProductPayload) {
-    await createMutation.mutateAsync(data)
+  async function handleCreate(data: ProductPayload, file?: File) {
+    await createMutation.mutateAsync({ payload: data, file })
     setCreating(false)
   }
 
-  async function handleUpdate(data: ProductPayload) {
+  async function handleUpdate(data: ProductPayload, file?: File) {
     if (!editing?.clientId) return
-    await updateMutation.mutateAsync({ id: editing.clientId, payload: data })
+    await updateMutation.mutateAsync({ id: editing.clientId, payload: data, file })
     setEditing(null)
   }
 

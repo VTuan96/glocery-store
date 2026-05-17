@@ -25,7 +25,7 @@ class ProductServiceTest {
 
     @Test
     void create_basicProduct_savesAndReturns() {
-        ProductRequest req = new ProductRequest("Nước ngọt", ProductType.NORMAL, 15000L, storeId, null, null, null);
+        ProductRequest req = new ProductRequest("Nước ngọt", ProductType.NORMAL, 15000L, storeId, null, null, null, null);
         Product saved = new Product();
         saved.setName("Nước ngọt");
         when(productRepository.save(any())).thenReturn(saved);
@@ -45,7 +45,7 @@ class ProductServiceTest {
         when(productRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ProductRequest req = new ProductRequest("Test", ProductType.NORMAL, 1000L, storeId,
-                List.of("123"), null, null);
+                null, List.of("123"), null, null);
 
         assertThrows(DuplicateBarcodeException.class, () -> productService.create(req));
     }

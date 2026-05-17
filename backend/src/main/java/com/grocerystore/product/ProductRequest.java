@@ -12,6 +12,7 @@ public record ProductRequest(
         @NotNull ProductType type,
         @Min(0) long defaultPrice,
         @NotNull UUID storeId,
+    String imageUrl,
         List<String> barcodes,
         List<PackUnitDto> packUnits,
         List<PricingTierDto> pricingTiers

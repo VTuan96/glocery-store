@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { VndInput } from '../../../components/ui/VndInput'
 import { formatVND } from '../../../lib/format/formatVND'
 import type { Product, ProductType } from '../../../types/global'
 
 interface ProductFormProps {
   initial?: Partial<Product>
-  onSave: (data: ProductPayload) => Promise<void>
+  onSave: (data: ProductPayload, file?: File) => Promise<void>
   onCancel?: () => void
 }
 
@@ -30,6 +30,9 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
   const [defaultPrice, setDefaultPrice] = useState(initial?.defaultPrice ?? 0)
   const [barcodes, setBarcodes] = useState<string[]>(initial?.barcodes ?? [])
   const [newBarcode, setNewBarcode] = useState('')
+  const [imageFile, setImageFile] = useState<File | undefined>(undefined)
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined)
+  const [imageStatus, setImageStatus] = useState('')
   const [packUnits, setPackUnits] = useState<{ name: string; quantity: number }[]>(
     initial?.packUnits ?? []
   )
@@ -39,13 +42,26 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
+  useEffect(() => {
+    if (!imageFile) {
+      setPreviewUrl(undefined)
+      return
+    }
+    const url = URL.createObjectURL(imageFile)
+    setPreviewUrl(url)
+    return () => { URL.revokeObjectURL(url) }
+  }, [imageFile])
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) { setError('Tên sản phẩm là bắt buộc'); return }
     if (defaultPrice <= 0) { setError('Giá phải lớn hơn 0'); return }
     setError(''); setSaving(true)
     try {
-      await onSave({ name: name.trim(), type, defaultPrice, barcodes, packUnits, pricingTiers })
+      await onSave(
+        { name: name.trim(), type, defaultPrice, barcodes, packUnits, pricingTiers },
+        imageFile,
+      )
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
       setError(msg ?? 'Không thể lưu sản phẩm')
@@ -130,6 +146,30 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
       ))}
       <button type="button" onClick={addTier} style={styles.addBtn}>+ Thêm bậc giá</button>
 
+      <label style={styles.label}>Hình ảnh sản phẩm</label>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          setImageFile(file)
+          setImageStatus(file ? `Ảnh đã chọn: ${file.name}` : '')
+        }}
+        style={styles.input}
+        aria-label="Chọn hình ảnh sản phẩm"
+      />
+      {imageStatus && <div style={styles.imageStatus}>{imageStatus}</div>}
+      {!imageStatus && !initial?.imageUrl && (
+        <div style={styles.imageStatus}>Chọn ảnh để khách hàng dễ nhận diện sản phẩm.</div>
+      )}
+      {(initial?.imageUrl || previewUrl) && (
+        <img
+          src={previewUrl ?? initial.imageUrl}
+          alt={initial?.name ?? 'Hình ảnh sản phẩm'}
+          style={styles.preview}
+        />
+      )}
+
       {error && <div style={styles.error} role="alert">{error}</div>}
 
       <div style={styles.actions}>
@@ -154,7 +194,9 @@ const styles: Record<string, React.CSSProperties> = {
   removeBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#C62828', minHeight: 32, minWidth: 32 },
   tierRow: { display: 'flex', gap: 8, alignItems: 'center' },
   error: { color: '#C62828', fontSize: 14 },
+  imageStatus: { color: '#555', fontSize: 13, marginTop: 6, marginBottom: 6 },
   actions: { display: 'flex', gap: 8, marginTop: 8 },
   cancelBtn: { flex: 1, padding: '12px 0', background: '#f5f5f5', border: '1px solid #ccc', borderRadius: 8, fontSize: 16, cursor: 'pointer', minHeight: 48 },
   saveBtn: { flex: 2, padding: '12px 0', background: '#00695C', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, cursor: 'pointer', minHeight: 48 },
+  preview: { width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 12, marginTop: 12 },
 }

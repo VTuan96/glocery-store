@@ -49,6 +49,7 @@ public class ProductService {
         product.setName(req.name());
         product.setType(req.type());
         product.setDefaultPrice(req.defaultPrice());
+        product.setImageUrl(req.imageUrl());
 
         // Barcodes
         product.getBarcodes().clear();
@@ -92,5 +93,18 @@ public class ProductService {
                 product.getPricingTiers().add(tier);
             }
         }
+    }
+
+    @Transactional
+    public Product setImageUrl(UUID productId, String imageUrl) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        product.setImageUrl(imageUrl);
+        return productRepository.save(product);
+    }
+
+    public Product findById(UUID productId) {
+        return productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found"));
     }
 }
