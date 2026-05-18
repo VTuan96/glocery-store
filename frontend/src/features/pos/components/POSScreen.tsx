@@ -25,6 +25,8 @@ export function POSScreen() {
   const [showCustomerSearch, setShowCustomerSearch] = useState(false)
   const [weightProduct, setWeightProduct] = useState<Product | null>(null)
   const [quickCreateName, setQuickCreateName] = useState<string | null>(null)
+  const [voiceStatus, setVoiceStatus] = useState('')
+  const [isListening, setIsListening] = useState(false)
   const [priceOverrideItem, setPriceOverrideItem] = useState<string | null>(null)
   const [overrideValue, setOverrideValue] = useState(0)
   const [showOwnerPin, setShowOwnerPin] = useState(false)
@@ -96,6 +98,53 @@ export function POSScreen() {
     }
   }
 
+  function handleVoiceSearch() {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+    if (!SpeechRecognition) {
+      setVoiceStatus('Trình duyệt không hỗ trợ tìm kiếm giọng nói')
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'vi-VN'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    recognition.continuous = false
+
+    recognition.onstart = () => {
+      setIsListening(true)
+      setVoiceStatus('Đang nghe...')
+    }
+
+    recognition.onspeechend = () => {
+      recognition.stop()
+    }
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript?.trim() ?? ''
+      if (transcript) {
+        setSearch(transcript)
+        setDebouncedSearch(transcript)
+        setVoiceStatus(`Kết quả: "${transcript}"`)
+      } else {
+        setVoiceStatus('Không nhận diện được giọng nói')
+      }
+    }
+
+    recognition.onerror = () => {
+      setVoiceStatus('Lỗi giọng nói, thử lại')
+      setIsListening(false)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognition.start()
+  }
+
   const isTablet = window.innerWidth >= 768
 
   return (
@@ -118,10 +167,23 @@ export function POSScreen() {
             autoFocus
             aria-label="Tìm sản phẩm"
           />
-          <button onClick={scanning ? stopScan : startScan} style={styles.scanBtn} aria-label="Quét mã vạch">
-            {scanning ? '⏹' : '📷'}
-          </button>
+          <div style={styles.searchButtons}>
+            <button
+              type="button"
+              onClick={handleVoiceSearch}
+              disabled={isListening}
+              style={{ ...styles.voiceBtn, opacity: isListening ? 0.7 : 1 }}
+              aria-label="Tìm bằng giọng nói"
+            >
+              {isListening ? '⏹' : '🎤'}
+            </button>
+            <button onClick={scanning ? stopScan : startScan} style={styles.scanBtn} aria-label="Quét mã vạch">
+              {scanning ? '⏹' : '📷'}
+            </button>
+          </div>
         </div>
+
+        {voiceStatus && <div style={styles.voiceStatus}>{voiceStatus}</div>}
 
         {scanning && <video ref={videoRef} style={styles.video} autoPlay muted playsInline />}
 
@@ -323,7 +385,10 @@ const styles: Record<string, React.CSSProperties> = {
   statsChip: { padding: '10px 16px', borderRadius: 999, background: '#E6F2EF', color: '#145440', fontWeight: 700, fontSize: 13 },
   searchRow: { display: 'flex', gap: 12, padding: 18, borderRadius: 24, background: '#FFFFFF', border: '1px solid #E5ECE6', alignItems: 'center', boxShadow: '0 12px 30px rgba(15, 95, 77, 0.06)' },
   searchInput: { flex: 1, height: 56, borderRadius: 18, border: '1px solid #D8E3E0', padding: '0 18px', fontSize: 16, outline: 'none', background: '#FAFEFF' },
+  searchButtons: { display: 'flex', gap: 12 },
+  voiceBtn: { width: 56, height: 56, borderRadius: 18, border: 'none', background: '#0F5F4D', color: '#fff', fontSize: 20, cursor: 'pointer', display: 'grid', placeItems: 'center' },
   scanBtn: { width: 56, height: 56, borderRadius: 18, border: 'none', background: '#0F5F4D', color: '#fff', fontSize: 22, cursor: 'pointer', display: 'grid', placeItems: 'center' },
+  voiceStatus: { marginTop: 10, color: '#556C6A', fontSize: 13, paddingLeft: 4 },
   video: { width: '100%', maxHeight: 220, minHeight: 180, borderRadius: 20, marginTop: 18, objectFit: 'cover' },
   notFoundPrompt: { display: 'flex', flexDirection: 'column', gap: 10, padding: 18, borderRadius: 18, background: '#FFF7ED', border: '1px solid #FFD4A6', marginTop: 16 },
   notFoundText: { margin: 0, color: '#8A4E00', fontWeight: 700 },
