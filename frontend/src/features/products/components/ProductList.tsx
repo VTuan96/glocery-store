@@ -25,48 +25,73 @@ export function ProductList() {
   if (editing) return <ProductForm initial={editing} onSave={handleUpdate} onCancel={() => setEditing(null)} />
 
   return (
-    <div style={styles.container}>
+    <div style={styles.page}>
       <div style={styles.header}>
-        <h2 style={styles.title}>Sản phẩm</h2>
+        <div>
+          <h2 style={styles.title}>Sản phẩm</h2>
+          <p style={styles.subtitle}>Quản lý sản phẩm, ảnh và thông tin hiển thị.</p>
+        </div>
         <button onClick={() => setCreating(true)} style={styles.addBtn}>+ Thêm sản phẩm</button>
       </div>
 
-      <input value={search} onChange={(e) => setSearch(e.target.value)}
-        placeholder="Tìm sản phẩm..." style={styles.search} aria-label="Tìm sản phẩm" />
+      <div style={styles.toolbar}>
+        <input value={search} onChange={(e) => setSearch(e.target.value)}
+          placeholder="Tìm sản phẩm..." style={styles.search} aria-label="Tìm sản phẩm" />
+      </div>
 
-      {isLoading && <div>Đang tải...</div>}
+      {isLoading && <div style={styles.status}>Đang tải...</div>}
 
-      <ul style={styles.list}>
+      <div style={styles.grid}>
         {products.map((p) => (
-          <li key={p.clientId} style={styles.item} onClick={() => setEditing(p)}>
-            <div>
-              <div style={styles.productName}>{p.name}</div>
-              <div style={styles.productMeta}>
-                {p.type === 'NORMAL' ? 'Thường' : p.type === 'WEIGHT' ? 'Cân' : 'Tách lẻ'}
-                {p.barcodes && p.barcodes.length > 0 && ` · ${p.barcodes.length} mã vạch`}
+          <button key={p.clientId} type="button" style={styles.card} onClick={() => setEditing(p)}>
+            <div style={styles.cardBody}>
+              {p.imageUrl ? (
+                <img src={p.imageUrl} alt={p.name} style={styles.cardImage} />
+              ) : (
+                <div style={styles.cardPlaceholder}>Chưa có ảnh</div>
+              )}
+              <div style={styles.cardContent}>
+                <div style={styles.cardTitle}>{p.name}</div>
+                <div style={styles.cardMeta}>
+                  {p.type === 'NORMAL' ? 'Thường' : p.type === 'WEIGHT' ? 'Cân' : 'Tách lẻ'}
+                  {p.barcodes && p.barcodes.length > 0 && ` · ${p.barcodes.length} mã vạch`}
+                </div>
               </div>
             </div>
-            <div style={styles.price}>{formatVND(p.defaultPrice)}</div>
-          </li>
+            <div style={styles.cardFooter}>
+              <div style={styles.cardPrice}>{formatVND(p.defaultPrice)}</div>
+              <div style={styles.cardBadge}>{p.type === 'NORMAL' ? 'Thường' : p.type === 'WEIGHT' ? 'Cân' : 'Tách lẻ'}</div>
+            </div>
+          </button>
         ))}
-        {!isLoading && products.length === 0 && (
-          <li style={styles.empty}>Không tìm thấy sản phẩm nào</li>
-        )}
-      </ul>
+      </div>
+
+      {!isLoading && products.length === 0 && (
+        <div style={styles.empty}>Không tìm thấy sản phẩm nào</div>
+      )}
     </div>
   )
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  container: { maxWidth: 600, margin: '0 auto', padding: 24, fontFamily: 'Inter, sans-serif' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 22, fontWeight: 700, margin: 0 },
-  addBtn: { padding: '10px 20px', background: '#00695C', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, cursor: 'pointer', minHeight: 48 },
-  search: { width: '100%', padding: '10px 12px', fontSize: 16, border: '1px solid #ccc', borderRadius: 8, marginBottom: 16, boxSizing: 'border-box', minHeight: 48 },
-  list: { listStyle: 'none', padding: 0, margin: 0 },
-  item: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #eee', cursor: 'pointer' },
-  productName: { fontSize: 16, fontWeight: 600 },
-  productMeta: { fontSize: 13, color: '#888', marginTop: 2 },
-  price: { fontSize: 18, fontWeight: 700, color: '#00695C' },
-  empty: { color: '#888', padding: '24px 0', textAlign: 'center' },
+  page: { maxWidth: 1200, margin: '0 auto', padding: '24px 16px', fontFamily: 'Inter, sans-serif', color: '#1C1C1C' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 24, flexWrap: 'wrap' },
+  title: { fontSize: 28, fontWeight: 800, margin: 0 },
+  subtitle: { margin: '8px 0 0', color: '#556069', fontSize: 14 },
+  toolbar: { display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 24 },
+  search: { flex: 1, minWidth: 260, padding: '12px 14px', fontSize: 16, border: '1px solid #D5DDE0', borderRadius: 12, boxSizing: 'border-box', background: '#fff' },
+  addBtn: { padding: '12px 24px', background: '#00695C', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, cursor: 'pointer', minHeight: 48, boxShadow: '0 12px 24px rgba(0,0,0,0.08)' },
+  status: { color: '#556069', fontSize: 15, marginBottom: 16 },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 },
+  card: { display: 'flex', flexDirection: 'column', alignItems: 'stretch', border: '1px solid #E7ECF0', borderRadius: 20, background: '#fff', padding: 18, cursor: 'pointer', textAlign: 'left', transition: 'transform 0.2s ease, box-shadow 0.2s ease', minHeight: 190, width: '100%' },
+  cardBody: { display: 'flex', gap: 16, alignItems: 'center', marginBottom: 18 },
+  cardImage: { width: 80, height: 80, borderRadius: 16, objectFit: 'cover', background: '#F7F9FA' },
+  cardPlaceholder: { width: 80, height: 80, borderRadius: 16, background: '#F1F3F5', color: '#7B8A95', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 10 },
+  cardContent: { flex: 1 },
+  cardTitle: { fontSize: 17, fontWeight: 700, marginBottom: 8 },
+  cardMeta: { color: '#6D7880', fontSize: 13, lineHeight: 1.5 },
+  cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  cardPrice: { fontSize: 18, fontWeight: 700, color: '#00695C' },
+  cardBadge: { padding: '6px 12px', borderRadius: 999, background: '#E8F5E9', color: '#2E7D32', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' },
+  empty: { color: '#7B8A95', padding: '40px 0', textAlign: 'center', fontSize: 16 },
 }

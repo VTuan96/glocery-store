@@ -31,7 +31,6 @@ export function POSScreen() {
   const [pendingOverrideItemId, setPendingOverrideItemId] = useState<string | null>(null)
   const [overrideToken, setOverrideToken] = useState<string | undefined>()
 
-  const storeId = useAuthStore((s) => s.storeId)
   const role = useAuthStore((s) => s.role)
   const { items, total, addItem, updateQuantity, removeItem, clearCart, overridePrice } = useCart()
   const { checkout, isLoading: checkingOut } = useCheckout()
@@ -101,16 +100,25 @@ export function POSScreen() {
 
   return (
     <div style={{ ...styles.screen, flexDirection: isTablet ? 'row' : 'column' }}>
-      {/* Left: Product area */}
-      <div style={{ ...styles.productArea, width: isTablet ? '55%' : '100%' }}>
+      <div style={{ ...styles.productArea, width: isTablet ? '60%' : '100%' }}>
+        <div style={styles.pageHeader}>
+          <div>
+            <h2 style={styles.pageTitle}>Bán hàng</h2>
+            <p style={styles.pageSubtitle}>Chọn sản phẩm và hoàn tất giao dịch nhanh chóng.</p>
+          </div>
+          <div style={styles.statsChip}>{products.length} sản phẩm</div>
+        </div>
+
         <div style={styles.searchRow}>
           <input
-            value={search} onChange={(e) => setSearch(e.target.value)}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm sản phẩm (2+ ký tự)..."
-            style={styles.searchInput} autoFocus aria-label="Tìm sản phẩm"
+            style={styles.searchInput}
+            autoFocus
+            aria-label="Tìm sản phẩm"
           />
-          <button onClick={scanning ? stopScan : startScan} style={styles.scanBtn}
-            aria-label="Quét mã vạch">
+          <button onClick={scanning ? stopScan : startScan} style={styles.scanBtn} aria-label="Quét mã vạch">
             {scanning ? '⏹' : '📷'}
           </button>
         </div>
@@ -119,7 +127,7 @@ export function POSScreen() {
 
         {notFound && (
           <div style={styles.notFoundPrompt}>
-            <span style={{ fontWeight: 700, color: '#F57C00' }}>⚠️ Không tìm thấy mã vạch: "{notFound}"</span>
+            <span style={styles.notFoundText}>⚠️ Không tìm thấy mã vạch: "{notFound}"</span>
             {role === 'OWNER' && (
               <button onClick={() => setQuickCreateName(notFound)} style={styles.createPromptBtn}>
                 Tạo sản phẩm mới "{notFound}"?
@@ -128,67 +136,67 @@ export function POSScreen() {
           </div>
         )}
 
-        {loadingProducts && search.length >= 2 && <div style={styles.loading}>Đang tải sản phẩm...</div>}
+        <div style={styles.productListArea}>
+          {loadingProducts && search.length >= 2 && <div style={styles.loading}>Đang tải sản phẩm...</div>}
 
-        {products.length > 0 ? (
-          <ul style={styles.productGrid}>
-            {products.map((p) => (
-              <li key={p.clientId} style={styles.productTileWrapper}>
-                <ProductTile product={p} onClick={() => handleAddProduct(p)} />
-              </li>
-            ))}
-          </ul>
-        ) : search.length >= 2 ? (
-          <li style={styles.emptySearch}>
-            <span>Không tìm thấy sản phẩm</span>
-            {role === 'OWNER' && (
-              <button onClick={() => setQuickCreateName(search)} style={styles.createPromptBtn}>
-                Tạo sản phẩm mới "{search}"?
-              </button>
-            )}
-          </li>
-        ) : (
-          <div style={styles.emptyHint}>Quét hoặc tìm sản phẩm để bắt đầu</div>
-        )}
+          {products.length > 0 ? (
+            <ul style={styles.productGrid}>
+              {products.map((p) => (
+                <li key={p.clientId} style={styles.productTileWrapper}>
+                  <ProductTile product={p} onClick={() => handleAddProduct(p)} />
+                </li>
+              ))}
+            </ul>
+          ) : search.length >= 2 ? (
+            <div style={styles.emptySearch}>
+              <span>Không tìm thấy sản phẩm</span>
+              {role === 'OWNER' && (
+                <button onClick={() => setQuickCreateName(search)} style={styles.createPromptBtn}>
+                  Tạo sản phẩm mới "{search}"?
+                </button>
+              )}
+            </div>
+          ) : (
+            <div style={styles.emptyHint}>Quét hoặc tìm sản phẩm để bắt đầu</div>
+          )}
 
-        {!loadingProducts && search.length === 0 && products.length === 0 && (
-          <div style={styles.emptyHint}>Chưa có sản phẩm thường xuyên. Hãy thêm hoặc đồng bộ sản phẩm.</div>
-        )}
+          {!loadingProducts && search.length === 0 && products.length === 0 && (
+            <div style={styles.emptyHint}>Chưa có sản phẩm thường xuyên. Hãy thêm hoặc đồng bộ sản phẩm.</div>
+          )}
+        </div>
       </div>
 
-      {!isTablet && items.length > 0 && (
-        <div style={styles.mobileSummary}>
-          <div style={styles.mobileTotal}>
-            <span>Tổng</span>
-            <strong>{formatVND(total)}</strong>
+      <div style={{ ...styles.cartPanel, width: isTablet ? '40%' : '100%' }}>
+        <div style={styles.cartHeader}>
+          <div>
+            <h3 style={styles.cartTitle}>Giỏ hàng</h3>
+            <p style={styles.cartSubtitle}>{items.length} mặt hàng</p>
           </div>
-          <button
-            onClick={handleCheckoutPress}
-            disabled={items.length === 0}
-            style={styles.mobileCheckoutBtn}
-            aria-label="Thanh toán"
-          >
-            {checkoutType === 'DEBT' && !selectedCustomer ? 'Chọn khách hàng' : 'Thanh toán →'}
-          </button>
+          <div style={styles.cartBadge}>{formatVND(total)}</div>
         </div>
-      )}
 
-      {/* Right: Cart panel */}
-      <div style={{ ...styles.cartPanel, width: isTablet ? '45%' : '100%' }}>
-        <h3 style={styles.cartTitle}>GIỎ HÀNG ({items.length} món)</h3>
-
-        {/* Payment type toggle */}
-        <div style={styles.typeRow}>
+        <div style={styles.cartControls}>
           <button
-            onClick={() => { setCheckoutType('CASH'); setSelectedCustomer(null) }}
-            style={{ ...styles.typeBtn, background: checkoutType === 'CASH' ? '#00695C' : '#e0e0e0',
-              color: checkoutType === 'CASH' ? '#fff' : '#333' }}>
+            onClick={() => {
+              setCheckoutType('CASH')
+              setSelectedCustomer(null)
+            }}
+            style={{
+              ...styles.typeBtn,
+              background: checkoutType === 'CASH' ? '#00695C' : '#F1F5F3',
+              color: checkoutType === 'CASH' ? '#fff' : '#284437',
+            }}
+          >
             Tiền mặt
           </button>
           <button
             onClick={() => setCheckoutType('DEBT')}
-            style={{ ...styles.typeBtn, background: checkoutType === 'DEBT' ? '#F57C00' : '#e0e0e0',
-              color: checkoutType === 'DEBT' ? '#fff' : '#333' }}>
+            style={{
+              ...styles.typeBtn,
+              background: checkoutType === 'DEBT' ? '#F57C00' : '#F1F5F3',
+              color: checkoutType === 'DEBT' ? '#fff' : '#284437',
+            }}
+          >
             Ghi nợ
           </button>
         </div>
@@ -199,47 +207,54 @@ export function POSScreen() {
           </button>
         )}
 
-        {items.length === 0 && <div style={styles.emptyHint}>Chưa có sản phẩm nào</div>}
-
         {priceOverrideItem && (
           <div style={styles.overrideRow}>
-            <VndInput value={overrideValue} onChange={setOverrideValue} label="Giá mới" style={{ fontSize: 18 }} />
-            <button onClick={applyPriceOverride} style={styles.applyBtn}>Áp dụng</button>
-            <button onClick={() => setPriceOverrideItem(null)} style={styles.cancelSmallBtn}>Huỷ</button>
+            <VndInput value={overrideValue} onChange={setOverrideValue} label="Giá mới" style={{ fontSize: 16 }} />
+            <button onClick={applyPriceOverride} style={styles.applyBtn}>
+              Áp dụng
+            </button>
+            <button onClick={() => setPriceOverrideItem(null)} style={styles.cancelSmallBtn}>
+              Huỷ
+            </button>
           </div>
         )}
 
-        <ul style={styles.cartList}>
-          {items.map((item) => (
-            <CartItemRow key={item.clientId} item={item}
-              onIncrement={() => updateQuantity(item.clientId!, item.quantity + 1)}
-              onDecrement={() => updateQuantity(item.clientId!, item.quantity - 1)}
-              onRemove={() => removeItem(item.clientId!)}
-              onPriceClick={() => handlePriceClick(item.clientId!)}
-            />
-          ))}
-        </ul>
+        <div style={styles.cartBody}>
+          {items.length === 0 ? (
+            <div style={styles.emptyHint}>Chưa có sản phẩm nào trong giỏ</div>
+          ) : (
+            <ul style={styles.cartList}>
+              {items.map((item) => (
+                <CartItemRow
+                  key={item.clientId}
+                  item={item}
+                  onIncrement={() => updateQuantity(item.clientId!, item.quantity + 1)}
+                  onDecrement={() => updateQuantity(item.clientId!, item.quantity - 1)}
+                  onRemove={() => removeItem(item.clientId!)}
+                  onPriceClick={() => handlePriceClick(item.clientId!)}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
 
         <div style={styles.cartFooter}>
           <div style={styles.totalRow}>
             <span style={styles.totalLabel}>Tổng cộng</span>
             <span style={styles.totalAmount}>{formatVND(total)}</span>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={styles.footerActions}>
             <button
               onClick={clearCart}
               disabled={items.length === 0}
-              style={{ flex: 1, height: 48, background: 'transparent', border: '2px solid #00695C', color: '#00695C', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer', opacity: items.length === 0 ? 0.5 : 1 }}
+              style={{ ...styles.clearButton, opacity: items.length === 0 ? 0.55 : 1 }}
             >
               Xoá giỏ
             </button>
             <button
               onClick={handleCheckoutPress}
               disabled={items.length === 0}
-              style={{ ...styles.checkoutBtn, flex: 2,
-                background: checkoutType === 'DEBT' ? '#F57C00' : '#00695C',
-                opacity: items.length === 0 ? 0.5 : 1 }}
-              aria-label="Thanh toán"
+              style={{ ...styles.checkoutBtn, opacity: items.length === 0 ? 0.55 : 1 }}
             >
               {checkoutType === 'DEBT' && !selectedCustomer ? 'Chọn khách hàng' : 'Thanh toán →'}
             </button>
@@ -248,31 +263,51 @@ export function POSScreen() {
       </div>
 
       <CheckoutConfirmSheet
-        open={showCheckout} items={items} total={total} type={checkoutType}
+        open={showCheckout}
+        items={items}
+        total={total}
+        type={checkoutType}
         customerName={selectedCustomer?.name}
-        newDebtBalance={checkoutType === 'DEBT' && selectedCustomer
-          ? selectedCustomer.debtBalance + total : undefined}
-        onConfirm={handleCheckoutConfirm} onCancel={() => setShowCheckout(false)}
+        newDebtBalance={checkoutType === 'DEBT' && selectedCustomer ? selectedCustomer.debtBalance + total : undefined}
+        onConfirm={handleCheckoutConfirm}
+        onCancel={() => setShowCheckout(false)}
         isLoading={checkingOut}
       />
       <WeightInputSheet
-        open={!!weightProduct} product={weightProduct}
-        onConfirm={(qty) => { if (weightProduct) { addItem(weightProduct, qty); setWeightProduct(null) } }}
+        open={!!weightProduct}
+        product={weightProduct}
+        onConfirm={(qty) => {
+          if (weightProduct) {
+            addItem(weightProduct, qty)
+            setWeightProduct(null)
+          }
+        }}
         onCancel={() => setWeightProduct(null)}
       />
       <QuickProductSheet
-        open={quickCreateName !== null} initialName={quickCreateName ?? ''}
-        onSaved={(product) => { handleAddProduct(product); setQuickCreateName(null) }}
+        open={quickCreateName !== null}
+        initialName={quickCreateName ?? ''}
+        onSaved={(product) => {
+          handleAddProduct(product)
+          setQuickCreateName(null)
+        }}
         onCancel={() => setQuickCreateName(null)}
       />
       <OwnerPinModal
         open={showOwnerPin}
         onSuccess={handleOwnerPinSuccess}
-        onCancel={() => { setShowOwnerPin(false); setPendingOverrideItemId(null) }}
+        onCancel={() => {
+          setShowOwnerPin(false)
+          setPendingOverrideItemId(null)
+        }}
       />
       <CustomerSearch
         open={showCustomerSearch}
-        onSelect={(customer) => { setSelectedCustomer(customer); setShowCustomerSearch(false); setShowCheckout(true) }}
+        onSelect={(customer) => {
+          setSelectedCustomer(customer)
+          setShowCustomerSearch(false)
+          setShowCheckout(true)
+        }}
         onCancel={() => setShowCustomerSearch(false)}
       />
     </div>
@@ -280,37 +315,46 @@ export function POSScreen() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  screen: { display: 'flex', height: '100vh', fontFamily: 'Inter, sans-serif', overflow: 'hidden' },
-  productArea: { display: 'flex', flexDirection: 'column', overflowY: 'auto', borderRight: '1px solid #E0E0E0' },
-  searchRow: { display: 'flex', gap: 8, padding: '12px 16px', background: '#fff', borderBottom: '1px solid #E0E0E0' },
-  searchInput: { flex: 1, height: 48, border: '1.5px solid #E0E0E0', borderRadius: 8, padding: '0 16px', fontSize: 16, outline: 'none' },
-  scanBtn: { width: 48, height: 48, background: '#00695C', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  video: { width: '100%', maxHeight: 200, borderRadius: 8, margin: '0 16px 8px' },
-  notFoundPrompt: { display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 16px', background: '#FFF3E0', borderBottom: '2px solid #FFB74D' },
-  productGrid: { listStyle: 'none', padding: '12px', margin: 0, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(120px, 1fr))', gap: 10 },
+  screen: { display: 'flex', flex: 1, minHeight: 0, fontFamily: 'Inter, sans-serif', overflow: 'hidden', background: '#F3F7F6', gap: 24 },
+  productArea: { display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, padding: 20, background: '#F7FBFA', borderRight: '1px solid #E6ECE8', borderRadius: 24, boxShadow: '0 20px 50px rgba(15, 95, 77, 0.06)' },
+  pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 18, flexWrap: 'wrap' },
+  pageTitle: { margin: 0, fontSize: 28, fontWeight: 800, color: '#11463D' },
+  pageSubtitle: { margin: '8px 0 0', fontSize: 14, color: '#556C6A' },
+  statsChip: { padding: '10px 16px', borderRadius: 999, background: '#E6F2EF', color: '#145440', fontWeight: 700, fontSize: 13 },
+  searchRow: { display: 'flex', gap: 12, padding: 18, borderRadius: 24, background: '#FFFFFF', border: '1px solid #E5ECE6', alignItems: 'center', boxShadow: '0 12px 30px rgba(15, 95, 77, 0.06)' },
+  searchInput: { flex: 1, height: 56, borderRadius: 18, border: '1px solid #D8E3E0', padding: '0 18px', fontSize: 16, outline: 'none', background: '#FAFEFF' },
+  scanBtn: { width: 56, height: 56, borderRadius: 18, border: 'none', background: '#0F5F4D', color: '#fff', fontSize: 22, cursor: 'pointer', display: 'grid', placeItems: 'center' },
+  video: { width: '100%', maxHeight: 220, minHeight: 180, borderRadius: 20, marginTop: 18, objectFit: 'cover' },
+  notFoundPrompt: { display: 'flex', flexDirection: 'column', gap: 10, padding: 18, borderRadius: 18, background: '#FFF7ED', border: '1px solid #FFD4A6', marginTop: 16 },
+  notFoundText: { margin: 0, color: '#8A4E00', fontWeight: 700 },
+  productListArea: { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden', marginTop: 18, padding: 18, borderRadius: 24, background: '#FFFFFF', boxShadow: '0 12px 30px rgba(15, 95, 77, 0.06)' },
+  productGrid: { flex: 1, minHeight: 0, overflowY: 'auto', listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 18 },
   productTileWrapper: { listStyle: 'none' },
-  loading: { padding: '16px', color: '#555' },
-  productTile: { background: '#fff', border: '1px solid #E0E0E0', borderRadius: 10, padding: '14px 10px', cursor: 'pointer', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 80 },
-  tileName: { fontSize: 15, fontWeight: 600, marginBottom: 6 },
-  tilePrice: { fontSize: 16, color: '#00695C', fontWeight: 700 },
-  emptySearch: { gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 8, padding: 16, color: '#888' },
-  emptyHint: { color: '#aaa', textAlign: 'center', padding: 24, fontSize: 15 },
-  createPromptBtn: { padding: '8px 12px', background: '#00695C', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14, minHeight: 48 },
-  cartPanel: { display: 'flex', flexDirection: 'column', background: '#fff' },
-  cartTitle: { margin: 0, padding: '12px 16px', fontSize: 15, fontWeight: 700, color: '#616161', borderBottom: '1px solid #E0E0E0', textTransform: 'uppercase' as const },
-  typeRow: { display: 'flex', gap: 8, padding: '8px 16px' },
-  typeBtn: { flex: 1, padding: '10px 0', border: 'none', borderRadius: 8, fontSize: 15, cursor: 'pointer', minHeight: 48 },
-  customerBtn: { margin: '0 16px 8px', padding: '10px 16px', background: '#fff3e0', border: '1px solid #F57C00', borderRadius: 8, cursor: 'pointer', fontSize: 15, minHeight: 48, textAlign: 'left' as const },
-  overrideRow: { display: 'flex', gap: 8, alignItems: 'center', padding: '0 16px 8px' },
-  applyBtn: { padding: '8px 16px', background: '#00695C', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', minHeight: 48 },
-  cancelSmallBtn: { padding: '8px 12px', background: '#f5f5f5', border: '1px solid #ccc', borderRadius: 6, cursor: 'pointer', minHeight: 48 },
-  cartList: { flex: 1, listStyle: 'none', padding: 0, margin: 0, overflowY: 'auto' as const },
-  cartFooter: { borderTop: '2px solid #E0E0E0', padding: '16px 20px', background: '#fff' },
-  totalRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  totalLabel: { fontSize: 16, color: '#616161' },
-  totalAmount: { fontSize: 32, fontWeight: 700, color: '#1A1A1A' },
-  checkoutBtn: { width: '100%', height: 64, color: '#fff', border: 'none', borderRadius: 12, fontSize: 18, fontWeight: 700, cursor: 'pointer' },
-  mobileSummary: { position: 'sticky', bottom: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: 12, background: '#fff', borderTop: '1px solid #E0E0E0' },
-  mobileTotal: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 14, color: '#333' },
-  mobileCheckoutBtn: { flex: 1, padding: '12px 16px', background: '#00695C', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 16, fontWeight: 700, minHeight: 48 },
+  loading: { padding: 16, color: '#4F6B66' },
+  emptySearch: { padding: 24, borderRadius: 18, background: '#FFFFFF', textAlign: 'center', color: '#677675', fontSize: 15 },
+  emptyHint: { padding: 28, textAlign: 'center', color: '#677675', fontSize: 15 },
+  createPromptBtn: { padding: '12px 18px', borderRadius: 999, background: '#0F5F4D', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14 },
+  cartPanel: { display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, maxHeight: '100%', background: '#FFFFFF', padding: 22, overflow: 'hidden', borderRadius: 24, border: '1px solid #E7ECEB', boxShadow: '0 20px 50px rgba(15, 95, 77, 0.06)' },
+  cartHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 18, paddingBottom: 16, borderBottom: '1px solid #E7ECEB' },
+  cartTitle: { margin: 0, fontSize: 22, fontWeight: 800, color: '#11463D' },
+  cartSubtitle: { margin: '8px 0 0', color: '#556C6A', fontSize: 13 },
+  cartBadge: { alignSelf: 'center', padding: '10px 16px', borderRadius: 999, background: '#E8F4EE', color: '#0F5F4D', fontWeight: 700, fontSize: 13 },
+  cartControls: { display: 'flex', gap: 12, marginBottom: 16, padding: 12, background: '#F8FBFA', borderRadius: 18 },
+  typeBtn: { flex: 1, borderRadius: 16, border: '1px solid transparent', padding: '12px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s ease, color 0.2s ease' },
+  customerBtn: { width: '100%', borderRadius: 18, border: '1px solid #D8E3E0', padding: '14px 16px', fontSize: 14, background: '#F7FBFA', color: '#26403A', cursor: 'pointer', textAlign: 'left' as const },
+  overrideRow: { display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+  applyBtn: { borderRadius: 18, border: 'none', padding: '12px 16px', fontWeight: 700, background: '#0F5F4D', color: '#fff', cursor: 'pointer' },
+  cancelSmallBtn: { borderRadius: 18, border: '1px solid #D8E3E0', padding: '12px 16px', background: '#F8FAF9', color: '#273C35', cursor: 'pointer' },
+  cartBody: { flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 4, paddingBottom: 20 },
+  cartList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 },
+  cartFooter: { marginTop: 18, paddingTop: 18, borderTop: '1px solid #E7ECEB', background: '#FFFFFF' },
+  totalRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  totalLabel: { fontSize: 14, color: '#556C6A' },
+  totalAmount: { fontSize: 28, fontWeight: 800, color: '#11463D' },
+  footerActions: { display: 'flex', gap: 12, flexWrap: 'wrap' },
+  clearButton: { flex: 1, minHeight: 56, borderRadius: 18, border: '1px solid #0F5F4D', background: 'transparent', color: '#0F5F4D', fontSize: 15, fontWeight: 700, cursor: 'pointer' },
+  checkoutBtn: { flex: 2, minHeight: 56, borderRadius: 18, border: 'none', background: '#0F5F4D', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer' },
+  mobileSummary: { position: 'sticky', bottom: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: 14, background: '#FFFFFF', borderTop: '1px solid #E7ECEB' },
+  mobileTotal: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 14, color: '#283A35' },
+  mobileCheckoutBtn: { flex: 1, padding: '14px 16px', borderRadius: 14, border: 'none', background: '#0F5F4D', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' },
 }

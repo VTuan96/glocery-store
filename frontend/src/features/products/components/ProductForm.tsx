@@ -198,5 +198,5 @@ const styles: Record<string, React.CSSProperties> = {
   actions: { display: 'flex', gap: 8, marginTop: 8 },
   cancelBtn: { flex: 1, padding: '12px 0', background: '#f5f5f5', border: '1px solid #ccc', borderRadius: 8, fontSize: 16, cursor: 'pointer', minHeight: 48 },
   saveBtn: { flex: 2, padding: '12px 0', background: '#00695C', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, cursor: 'pointer', minHeight: 48 },
-  preview: { width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 12, marginTop: 12 },
+  preview: { width: '100%', maxHeight: 240, height: 'auto', objectFit: 'contain', borderRadius: 12, marginTop: 12, background: '#f9f9f9' },
 }

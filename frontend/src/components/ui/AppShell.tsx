@@ -134,7 +134,7 @@ export function AppShell() {
   )
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', height: '100vh', bgcolor: 'background.default', overflow: 'hidden' }}>
       {/* Top AppBar */}
       <AppBar
         position="fixed"
@@ -145,7 +145,7 @@ export function AppShell() {
           color: '#fff',
         }}
       >
-        <Toolbar sx={{ minHeight: 56 }}>
+        <Toolbar sx={{ minHeight: { xs: 56, md: 64 } }}>
           {!isTablet && (
             <IconButton
               edge="start"
@@ -159,7 +159,7 @@ export function AppShell() {
           <Typography
             variant="h6"
             fontWeight={700}
-            sx={{ flexGrow: 1, color: '#fff', display: isTablet ? 'none' : 'block' }}
+            sx={{ flexGrow: 1, color: '#fff', display: 'block' }}
           >
             🛒 GroceryStore
           </Typography>
@@ -179,6 +179,7 @@ export function AppShell() {
               boxSizing: 'border-box',
               borderRight: '1px solid',
               borderColor: 'divider',
+              pt: { xs: '56px', md: '64px' },
             },
           }}
         >
@@ -203,12 +204,14 @@ export function AppShell() {
           flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
-          mt: '64px',
           mb: isTablet ? 0 : '56px',
-          overflow: 'auto',
+          overflow: 'hidden',
         }}
       >
-        <Outlet />
+        <Toolbar sx={{ minHeight: { xs: 56, md: 64 } }} />
+        <Box sx={{ flex: 1, px: { xs: 1, md: 3 }, py: { xs: 1, md: 2 }, overflow: 'hidden' }}>
+          <Outlet />
+        </Box>
       </Box>
 
       {/* Bottom tab bar — phone only */}

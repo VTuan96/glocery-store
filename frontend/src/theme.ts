@@ -33,6 +33,23 @@ export const theme = createTheme({
   },
   spacing: 8,
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        html: {
+          height: '100%',
+          overflow: 'hidden',
+        },
+        body: {
+          height: '100%',
+          overflow: 'hidden',
+          margin: 0,
+        },
+        '#root': {
+          height: '100%',
+          overflow: 'hidden',
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {

@@ -34,11 +34,17 @@ export function PinLogin() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        {/* Logo / Title */}
-        <div style={styles.logo}>🛒 GroceryStore</div>
-        <div style={styles.subtitle}>Đăng nhập bằng PIN</div>
+        <div style={styles.brandRow}>
+          <div style={styles.brandBadge}>🛒</div>
+          <div>
+            <div style={styles.brandName}>GroceryStore</div>
+            <div style={styles.brandText}>POS cho cửa hàng bán lẻ</div>
+          </div>
+        </div>
 
-        {/* Role selector */}
+        <div style={styles.title}>Đăng nhập bằng mã PIN</div>
+        <div style={styles.description}>Chọn vai trò, nhập mã PIN và bắt đầu bán hàng.</div>
+
         <div style={styles.roleRow}>
           {(['OWNER', 'STAFF'] as UserRole[]).map((r) => (
             <button
@@ -46,8 +52,8 @@ export function PinLogin() {
               onClick={() => setRole(r)}
               style={{
                 ...styles.roleBtn,
-                background: role === r ? '#00695C' : '#e0e0e0',
-                color: role === r ? '#fff' : '#333',
+                background: role === r ? '#00695C' : '#F1F5F4',
+                color: role === r ? '#fff' : '#1F3A2D',
               }}
               aria-pressed={role === r}
             >
@@ -56,7 +62,6 @@ export function PinLogin() {
           ))}
         </div>
 
-        {/* PIN dots */}
         <div style={styles.dotsRow} aria-label="PIN display">
           {Array.from({ length: MAX_PIN_LENGTH }).map((_, i) => (
             <span key={i} style={styles.dot}>
@@ -65,12 +70,8 @@ export function PinLogin() {
           ))}
         </div>
 
-        {/* Error */}
-        <div style={styles.error} role="alert">
-          {error ?? ''}
-        </div>
+        <div style={styles.error} role="alert">{error ?? ' '}</div>
 
-        {/* PIN pad */}
         <div style={styles.grid}>
           {KEYS.map((key) => (
             <button
@@ -79,8 +80,8 @@ export function PinLogin() {
               disabled={isLoading}
               style={{
                 ...styles.key,
-                background: key === '✓' ? '#00695C' : '#f5f5f5',
-                color: key === '✓' ? '#fff' : '#333',
+                background: key === '✓' ? '#00695C' : '#F7F9F9',
+                color: key === '✓' ? '#fff' : '#1F3A2D',
               }}
               aria-label={key === '←' ? 'Backspace' : key === '✓' ? 'Confirm' : key}
             >
@@ -99,50 +100,53 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: '100vh',
-    background: '#FAFAF8',
+    background: '#ECF2EF',
     fontFamily: 'Inter, sans-serif',
     padding: 24,
   },
   card: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    gap: 16,
-    background: '#fff',
-    borderRadius: 16,
-    padding: '32px 24px',
     width: '100%',
-    maxWidth: 360,
-    boxShadow: '0 4px 24px rgba(0,0,0,.08)',
+    maxWidth: 420,
+    gap: 20,
+    background: '#FFFFFF',
+    borderRadius: 24,
+    padding: '32px 28px',
+    boxShadow: '0 24px 50px rgba(0, 0, 0, 0.08)',
   },
-  logo: { fontSize: 24, fontWeight: 700, color: '#00695C' },
-  subtitle: { fontSize: 15, color: '#616161', marginTop: -8 },
-  roleRow: { display: 'flex', gap: 8, width: '100%' },
+  brandRow: { display: 'flex', alignItems: 'center', gap: 16 },
+  brandBadge: { width: 48, height: 48, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#E8F2F0', fontSize: 22 },
+  brandName: { fontSize: 22, fontWeight: 800, color: '#0B3C34' },
+  brandText: { fontSize: 14, color: '#5D6E6A', marginTop: 4 },
+  title: { fontSize: 24, fontWeight: 800, color: '#0B3C34' },
+  description: { fontSize: 14, color: '#5D6E6A', lineHeight: 1.6 },
+  roleRow: { display: 'flex', gap: 12 },
   roleBtn: {
     flex: 1,
-    padding: '12px 0',
-    border: 'none',
-    borderRadius: 8,
+    padding: '14px 0',
+    border: '1px solid #E2E9E5',
+    borderRadius: 14,
     fontSize: 15,
+    fontWeight: 700,
     cursor: 'pointer',
-    minHeight: 48,
-    fontWeight: 600,
+    transition: 'all 0.2s ease',
   },
-  dotsRow: { display: 'flex', gap: 16, fontSize: 32, letterSpacing: 4 },
-  dot: { display: 'inline-block', width: 28, textAlign: 'center' },
+  dotsRow: { display: 'flex', gap: 16, fontSize: 32, letterSpacing: 4, justifyContent: 'center' },
+  dot: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28 },
   error: { color: '#C62828', minHeight: 20, fontSize: 14, textAlign: 'center' },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: 8,
+    gap: 12,
     width: '100%',
   },
   key: {
     minHeight: 64,
-    fontSize: 22,
-    fontWeight: 600,
+    fontSize: 20,
+    fontWeight: 700,
     border: 'none',
-    borderRadius: 8,
+    borderRadius: 16,
     cursor: 'pointer',
   },
 }
