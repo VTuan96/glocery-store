@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { VndInput } from '../../../components/ui/VndInput'
 import { formatVND } from '../../../lib/format/formatVND'
 import type { Product, ProductType } from '../../../types/global'
@@ -30,6 +30,7 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
   const [defaultPrice, setDefaultPrice] = useState(initial?.defaultPrice ?? 0)
   const [barcodes, setBarcodes] = useState<string[]>(initial?.barcodes ?? [])
   const [newBarcode, setNewBarcode] = useState('')
+  const barcodeInputRef = useRef<HTMLInputElement | null>(null)
   const [imageFile, setImageFile] = useState<File | undefined>(undefined)
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined)
   const [imageStatus, setImageStatus] = useState('')
@@ -51,6 +52,12 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
     setPreviewUrl(url)
     return () => { URL.revokeObjectURL(url) }
   }, [imageFile])
+
+  useEffect(() => {
+    // Focus the barcode input when the form mounts so USB/HID scanners
+    // will input into the barcode field instead of submitting the form.
+    barcodeInputRef.current?.focus()
+  }, [])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -106,7 +113,13 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
       {/* Barcodes */}
       <label style={styles.label}>Mã vạch</label>
       <div style={styles.row}>
-        <input value={newBarcode} onChange={(e) => setNewBarcode(e.target.value)}
+        <input ref={barcodeInputRef} value={newBarcode} onChange={(e) => setNewBarcode(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              addBarcode()
+            }
+          }}
           style={{ ...styles.input, flex: 1 }} placeholder="Nhập hoặc quét mã vạch"
           aria-label="Mã vạch mới" />
         <button type="button" onClick={addBarcode} style={styles.addBtn}>Thêm</button>
