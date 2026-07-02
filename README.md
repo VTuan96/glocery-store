@@ -14,17 +14,21 @@ grocery-store/
 
 ## Quick Start (Local Dev)
 
-### 1. Start the backend + database
+### 1. Start the full stack with Docker
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
+- Frontend: http://localhost
 - Backend API: http://localhost:8080
 - Health check: http://localhost:8080/actuator/health
 - PostgreSQL: localhost:5432
 
-### 2. Start the frontend
+> Only Docker Desktop is required on the host machine.
+> The frontend is built into a static container and proxies `/api` to the backend service automatically.
+
+### 2. Frontend development mode (optional)
 
 ```bash
 cd frontend
@@ -32,11 +36,9 @@ npm install
 npm run dev
 ```
 
-- Frontend: http://localhost:5173
+- Frontend dev server: http://localhost:5173
 
-> The frontend proxies API calls to the backend automatically via `VITE_API_BASE_URL`.
-> No `.env` file is needed for local dev — the default `/api/v1` base path is used and
-> Vite's dev server proxies `/api` to `http://localhost:8080`.
+> This is only needed if you want to work on frontend code with Vite hot reload.
 
 ### Default login PINs (seeded on first run)
 
