@@ -40,6 +40,31 @@ export function POSScreen() {
     (product, qty) => handleAddProduct(product, qty)
   )
   const { products, isLoading: loadingProducts } = useProducts(debouncedSearch)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE_OPTIONS = [5, 10, 15, 20]
+  const [pageSize, setPageSize] = useState<number>(() => {
+    try {
+      const v = localStorage.getItem('pos_page_size')
+      return v ? Number(v) : 10
+    } catch {
+      return 10
+    }
+  })
+
+  useEffect(() => {
+    setPage(1)
+    try {
+      localStorage.setItem('pos_page_size', String(pageSize))
+    } catch {}
+  }, [pageSize, debouncedSearch])
+
+  // products to show on current page
+  const totalProducts = products.length
+  const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize))
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [totalPages, page])
+  const pageProducts = products.slice((page - 1) * pageSize, page * pageSize)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300)
@@ -202,13 +227,36 @@ export function POSScreen() {
           {loadingProducts && search.length >= 2 && <div style={styles.loading}>Đang tải sản phẩm...</div>}
 
           {products.length > 0 ? (
-            <ul style={styles.productGrid}>
-              {products.map((p) => (
-                <li key={p.clientId} style={styles.productTileWrapper}>
-                  <ProductTile product={p} onClick={() => handleAddProduct(p)} />
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul style={styles.productGrid}>
+                {pageProducts.map((p) => (
+                  <li key={p.clientId} style={styles.productTileWrapper}>
+                    <ProductTile product={p} onClick={() => handleAddProduct(p)} />
+                  </li>
+                ))}
+              </ul>
+
+              <div style={styles.paginationRow}>
+                <div style={styles.pageSizeControl}>
+                  <label style={{ marginRight: 8, color: '#4F6B66' }}>Số hàng:</label>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    style={styles.pageSizeSelect}
+                  >
+                    {PAGE_SIZE_OPTIONS.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={styles.pageControls}>
+                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} style={styles.pageBtn}>‹</button>
+                  <span style={styles.pageInfo}>{page} / {totalPages}</span>
+                  <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={styles.pageBtn}>›</button>
+                </div>
+              </div>
+            </>
           ) : search.length >= 2 ? (
             <div style={styles.emptySearch}>
               <span>Không tìm thấy sản phẩm</span>
@@ -378,7 +426,7 @@ export function POSScreen() {
 
 const styles: Record<string, React.CSSProperties> = {
   screen: { display: 'flex', height: '100%', minHeight: 0, fontFamily: 'Inter, sans-serif', overflow: 'hidden', background: '#F3F7F6', gap: 24 },
-  productArea: { display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, padding: 24, background: '#F7FBFA', borderRight: '1px solid #E6ECE8', borderRadius: 24, boxShadow: '0 20px 50px rgba(15, 95, 77, 0.06)' },
+  productArea: { display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0, padding: 16, background: '#F7FBFA', borderRight: '1px solid #E6ECE8', borderRadius: 24, boxShadow: '0 12px 30px rgba(15, 95, 77, 0.06)' },
   pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 18, flexWrap: 'wrap' },
   pageTitle: { margin: 0, fontSize: 28, fontWeight: 800, color: '#11463D' },
   pageSubtitle: { margin: '8px 0 0', fontSize: 14, color: '#556C6A' },
@@ -392,9 +440,15 @@ const styles: Record<string, React.CSSProperties> = {
   video: { width: '100%', maxHeight: 220, minHeight: 180, borderRadius: 20, marginTop: 18, objectFit: 'cover' },
   notFoundPrompt: { display: 'flex', flexDirection: 'column', gap: 10, padding: 18, borderRadius: 18, background: '#FFF7ED', border: '1px solid #FFD4A6', marginTop: 16 },
   notFoundText: { margin: 0, color: '#8A4E00', fontWeight: 700 },
-  productListArea: { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden', marginTop: 18, padding: 20, paddingBottom: 28, borderRadius: 24, background: '#FFFFFF', boxShadow: '0 12px 30px rgba(15, 95, 77, 0.06)' },
-  productGrid: { flex: 1, minHeight: 0, overflowY: 'auto', listStyle: 'none', padding: 12, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20, paddingBottom: 28, alignContent: 'start' },
+  productListArea: { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden', marginTop: 12, padding: 12, paddingBottom: 12, borderRadius: 24, background: '#FFFFFF', boxShadow: '0 10px 24px rgba(15, 95, 77, 0.06)' },
+  productGrid: { flex: 1, minHeight: 0, overflowY: 'auto', listStyle: 'none', padding: 8, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, paddingBottom: 12, alignContent: 'start' },
   productTileWrapper: { listStyle: 'none' },
+  paginationRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 8px 0', gap: 12 },
+  pageSizeControl: { display: 'flex', alignItems: 'center' },
+  pageSizeSelect: { padding: '8px 10px', borderRadius: 8, border: '1px solid #D8E3E0', background: '#fff' },
+  pageControls: { display: 'flex', alignItems: 'center', gap: 8 },
+  pageBtn: { padding: '8px 12px', borderRadius: 8, border: '1px solid #D8E3E0', background: '#F7FBFA', cursor: 'pointer' },
+  pageInfo: { color: '#556C6A', fontWeight: 700 },
   loading: { padding: 16, color: '#4F6B66' },
   emptySearch: { padding: 24, borderRadius: 18, background: '#FFFFFF', textAlign: 'center', color: '#677675', fontSize: 15 },
   emptyHint: { padding: 28, textAlign: 'center', color: '#677675', fontSize: 15 },
