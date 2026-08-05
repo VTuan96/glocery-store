@@ -9,6 +9,14 @@ export function ProductList() {
   const [editing, setEditing] = useState<Product | null>(null)
   const [creating, setCreating] = useState(false)
   const { products, isLoading, createMutation, updateMutation } = useProducts(search)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  const totalPages = Math.max(1, Math.ceil(products.length / pageSize))
+  // ensure current page is valid when products or pageSize change
+  if (page > totalPages) setPage(totalPages)
+  const startIndex = (page - 1) * pageSize
+  const pagedProducts = products.slice(startIndex, startIndex + pageSize)
 
   async function handleCreate(data: ProductPayload, file?: File) {
     await createMutation.mutateAsync({ payload: data, file })
@@ -42,7 +50,7 @@ export function ProductList() {
       {isLoading && <div style={styles.status}>Đang tải...</div>}
 
       <div style={styles.grid}>
-        {products.map((p) => (
+        {pagedProducts.map((p) => (
           <button key={p.clientId} type="button" style={styles.card} onClick={() => setEditing(p)}>
             <div style={styles.cardBody}>
               {p.imageUrl ? (
@@ -66,6 +74,48 @@ export function ProductList() {
         ))}
       </div>
 
+      {/* Pagination controls - large buttons for easier use by elderly users */}
+      {products.length > pageSize && (
+        <div style={styles.pageControls} aria-label="Pagination">
+          <button
+            type="button"
+            onClick={() => setPage((s) => Math.max(1, s - 1))}
+            disabled={page === 1}
+            style={{ ...styles.pageButton, opacity: page === 1 ? 0.5 : 1 }}
+            aria-label="Trang trước"
+          >
+            ← Trước
+          </button>
+
+          <div style={styles.pageInfo} aria-live="polite">Trang {page} / {totalPages}</div>
+
+          <button
+            type="button"
+            onClick={() => setPage((s) => Math.min(totalPages, s + 1))}
+            disabled={page === totalPages}
+            style={{ ...styles.pageButton, opacity: page === totalPages ? 0.5 : 1 }}
+            aria-label="Trang sau"
+          >
+            Sau →
+          </button>
+
+          <label style={styles.pageSizeLabel}>
+            Hiển thị
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageSize(parseInt(e.target.value, 10)); setPage(1) }}
+              style={styles.pageSizeSelect}
+              aria-label="Số mục trên trang"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+            </select>
+            mục
+          </label>
+        </div>
+      )}
+
       {!isLoading && products.length === 0 && (
         <div style={styles.empty}>Không tìm thấy sản phẩm nào</div>
       )}
@@ -74,7 +124,7 @@ export function ProductList() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  page: { maxWidth: 1200, margin: '0 auto', padding: '24px 16px', fontFamily: 'Inter, sans-serif', color: '#1C1C1C' },
+  page: { width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '24px 20px', fontFamily: 'Inter, sans-serif', color: '#1C1C1C', boxSizing: 'border-box' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 24, flexWrap: 'wrap' },
   title: { fontSize: 28, fontWeight: 800, margin: 0 },
   subtitle: { margin: '8px 0 0', color: '#556069', fontSize: 14 },
@@ -82,8 +132,16 @@ const styles: Record<string, React.CSSProperties> = {
   search: { flex: 1, minWidth: 260, padding: '12px 14px', fontSize: 16, border: '1px solid #D5DDE0', borderRadius: 12, boxSizing: 'border-box', background: '#fff' },
   addBtn: { padding: '12px 24px', background: '#00695C', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, cursor: 'pointer', minHeight: 48, boxShadow: '0 12px 24px rgba(0,0,0,0.08)' },
   status: { color: '#556069', fontSize: 15, marginBottom: 16 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18 },
-  card: { display: 'flex', flexDirection: 'column', alignItems: 'stretch', border: '1px solid #E7ECF0', borderRadius: 20, background: '#fff', padding: 18, cursor: 'pointer', textAlign: 'left', transition: 'transform 0.2s ease, box-shadow 0.2s ease', minHeight: 190, width: '100%' },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+    gap: 20,
+    maxHeight: '70vh',
+    overflowY: 'auto',
+    padding: 12,
+    paddingBottom: 28,
+  },
+  card: { display: 'flex', flexDirection: 'column', alignItems: 'stretch', border: '1px solid #E7ECF0', borderRadius: 20, background: '#fff', padding: 18, cursor: 'pointer', textAlign: 'left', transition: 'transform 0.2s ease, box-shadow 0.2s ease', minHeight: 170, width: '100%' },
   cardBody: { display: 'flex', gap: 16, alignItems: 'center', marginBottom: 18 },
   cardImage: { width: 80, height: 80, borderRadius: 16, objectFit: 'cover', background: '#F7F9FA' },
   cardPlaceholder: { width: 80, height: 80, borderRadius: 16, background: '#F1F3F5', color: '#7B8A95', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 10 },
@@ -94,4 +152,9 @@ const styles: Record<string, React.CSSProperties> = {
   cardPrice: { fontSize: 18, fontWeight: 700, color: '#00695C' },
   cardBadge: { padding: '6px 12px', borderRadius: 999, background: '#E8F5E9', color: '#2E7D32', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' },
   empty: { color: '#7B8A95', padding: '40px 0', textAlign: 'center', fontSize: 16 },
+  pageControls: { display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center', marginTop: 12, padding: '12px 8px' },
+  pageButton: { padding: '12px 20px', borderRadius: 12, border: 'none', background: '#00695C', color: '#fff', fontSize: 18, fontWeight: 700, cursor: 'pointer' },
+  pageInfo: { fontSize: 18, color: '#27493F', fontWeight: 700, minWidth: 140, textAlign: 'center' },
+  pageSizeLabel: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#27493F' },
+  pageSizeSelect: { marginLeft: 6, padding: '8px 10px', fontSize: 16, borderRadius: 8 },
 }

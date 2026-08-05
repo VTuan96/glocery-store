@@ -34,6 +34,8 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
   const [imageFile, setImageFile] = useState<File | undefined>(undefined)
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined)
   const [imageStatus, setImageStatus] = useState('')
+  const [nameListening, setNameListening] = useState(false)
+  const [priceListening, setPriceListening] = useState(false)
   const [packUnits, setPackUnits] = useState<{ name: string; quantity: number }[]>(
     initial?.packUnits ?? []
   )
@@ -58,6 +60,41 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
     // will input into the barcode field instead of submitting the form.
     barcodeInputRef.current?.focus()
   }, [])
+
+  function startDictationFor(field: 'name' | 'price') {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) return
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'vi-VN'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+
+    if (field === 'name') setNameListening(true)
+    if (field === 'price') setPriceListening(true)
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript?.trim() ?? ''
+      if (!transcript) return
+      if (field === 'name') setName(transcript)
+      if (field === 'price') {
+        // Convert spoken numbers to a digit string roughly by removing non-digits
+        const digits = transcript.replace(/[^0-9]/g, '')
+        const value = parseInt(digits || transcript.replace(/[^0-9]/g, ''), 10) || 0
+        setDefaultPrice(value)
+      }
+    }
+
+    recognition.onerror = () => {
+      // ignore
+    }
+
+    recognition.onend = () => {
+      setNameListening(false)
+      setPriceListening(false)
+    }
+
+    recognition.start()
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -89,8 +126,13 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
     <form onSubmit={handleSave} style={styles.form}>
       {/* Name */}
       <label style={styles.label}>Tên sản phẩm *</label>
-      <input value={name} onChange={(e) => setName(e.target.value)}
-        style={styles.input} aria-label="Tên sản phẩm" placeholder="Tên sản phẩm" />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input value={name} onChange={(e) => setName(e.target.value)}
+          style={styles.input} aria-label="Tên sản phẩm" placeholder="Tên sản phẩm" />
+        <button type="button" onClick={() => startDictationFor('name')} style={styles.speakBtn} aria-pressed={nameListening} aria-label="Ghi âm tên sản phẩm">
+          {nameListening ? '⏺' : '🎤'}
+        </button>
+      </div>
 
       {/* Type */}
       <label style={styles.label}>Loại sản phẩm</label>
@@ -108,7 +150,12 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
 
       {/* Default price */}
       <label style={styles.label}>Giá mặc định *</label>
-      <VndInput value={defaultPrice} onChange={setDefaultPrice} label="Giá mặc định (VND)" />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <VndInput value={defaultPrice} onChange={setDefaultPrice} label="Giá mặc định (VND)" />
+        <button type="button" onClick={() => startDictationFor('price')} style={styles.speakBtn} aria-pressed={priceListening} aria-label="Ghi âm giá sản phẩm">
+          {priceListening ? '⏺' : '🎤'}
+        </button>
+      </div>
 
       {/* Barcodes */}
       <label style={styles.label}>Mã vạch</label>
@@ -196,7 +243,7 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  form: { display: 'flex', flexDirection: 'column', gap: 8, fontFamily: 'Inter, sans-serif' },
+  form: { display: 'flex', flexDirection: 'column', gap: 8, fontFamily: 'Inter, sans-serif', maxHeight: '100vh', overflowY: 'auto', paddingBottom: 96, boxSizing: 'border-box' },
   label: { fontSize: 14, fontWeight: 600, color: '#555', marginTop: 8 },
   input: { padding: '10px 12px', fontSize: 16, border: '1px solid #ccc', borderRadius: 8, minHeight: 48 },
   typeRow: { display: 'flex', gap: 8 },
@@ -208,8 +255,9 @@ const styles: Record<string, React.CSSProperties> = {
   tierRow: { display: 'flex', gap: 8, alignItems: 'center' },
   error: { color: '#C62828', fontSize: 14 },
   imageStatus: { color: '#555', fontSize: 13, marginTop: 6, marginBottom: 6 },
-  actions: { display: 'flex', gap: 8, marginTop: 8 },
-  cancelBtn: { flex: 1, padding: '12px 0', background: '#f5f5f5', border: '1px solid #ccc', borderRadius: 8, fontSize: 16, cursor: 'pointer', minHeight: 48 },
-  saveBtn: { flex: 2, padding: '12px 0', background: '#00695C', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, cursor: 'pointer', minHeight: 48 },
+  actions: { display: 'flex', gap: 8, marginTop: 8, position: 'sticky', bottom: 12, background: 'linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,1))', paddingTop: 8 },
+  cancelBtn: { flex: 1, padding: '12px 0', background: '#f5f5f5', border: '1px solid #ccc', borderRadius: 8, fontSize: 16, cursor: 'pointer', minHeight: 56 },
+  saveBtn: { flex: 2, padding: '12px 0', background: '#00695C', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, cursor: 'pointer', minHeight: 56 },
   preview: { width: '100%', maxHeight: 240, height: 'auto', objectFit: 'contain', borderRadius: 12, marginTop: 12, background: '#f9f9f9' },
+  speakBtn: { padding: '10px 12px', borderRadius: 8, border: '1px solid #D5DDE0', background: '#fff', cursor: 'pointer', minHeight: 48, fontSize: 18 },
 }
